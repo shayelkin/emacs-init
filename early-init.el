@@ -1,5 +1,11 @@
 ;;; early-init.el --- Loaded before packages and GUI are initialized. -*- lexical-binding: t -*-
 
+;; SPDX-License-Identifier: MIT
+;; Author: Shay Elkin <shay@elkin.io>
+;; Package-Requires: ((emacs "27.1"))
+
+;; This file is not part of GNU Emacs.
+
 ;;; Commentary:
 
 ;;; Code:

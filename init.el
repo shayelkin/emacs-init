@@ -1,11 +1,12 @@
 ;;; init.el --- Emacs initialization file. -*- lexical-binding: t -*-
 
-;;; Commentary:
-
+;; SPDX-License-Identifier: MIT
 ;; Author: Shay Elkin <shay@elkin.io>
 ;; Package-Requires: ((emacs "30.0"))
 
 ;; This file is not part of GNU Emacs.
+
+;;; Commentary:
 
 ;;; Code:
 
@@ -16,6 +17,9 @@
 (defconst on-mac-window-system (memq window-system '(mac ns))
   "Non-nil when running on macOS graphical environment.")
 
+(defvar elisp-src-dir
+  (expand-file-name "~/src/emacs-lisp")
+  "Directory containing sources for Emacs packages")
 
 ;; --- Package managment:
 
@@ -185,34 +189,26 @@ When on a window system, also shrink the frame by the size of the deleted window
 (setq frame-title-format '(buffer-file-name
                            (:eval (abbreviate-file-name (buffer-file-name)))
                            "%b"))
+(setq
+ blink-cursor-blinks 2
+ create-lockfiles nil
+ delete-by-moving-to-trash t
+ inhibit-startup-message t
+ mac-option-modifier 'meta
+ read-file-name-completion-ignore-case t
+ read-process-output-max 65535  ;; https://debbugs.gnu.org/cgi/bugreport.cgi?msg=5;bug=55737
+ ring-bell-function 'ignore
+ show-trailing-whitespace t
+ tab-always-indent 'complete    ;; TAB indents, if already indented, complete-at-point.
+ use-dialog-box nil
+ use-short-answers t)
 
-(setq inhibit-startup-message t)
-(setq-default cursor-type 'hbar)
-(setq blink-cursor-blinks 1)
-
-(setq-default indent-tabs-mode nil)
-
-(setq create-lockfiles nil)
-(setq read-file-name-completion-ignore-case t)
-(setq delete-by-moving-to-trash t)
-(setq use-dialog-box nil)
-
-(setq mac-option-modifier 'meta)
-
-(setq show-trailing-whitespace t)
-(setq use-short-answers t) ;; Always ask "y or n", never "yes or no"
-;; See https://debbugs.gnu.org/cgi/bugreport.cgi?msg=5;bug=55737
-(setq read-process-output-max 65535)
-
-(setq ring-bell-function 'ignore)
-
-;; TAB would indent, or if line is already indented, complete-at-point.
-(setq tab-always-indent 'complete)
+(setq-default cursor-type 'hbar
+              indent-tabs-mode nil)
 
 ;; Don't use Ispell to complete words in text modes.
-(setopt text-mode-ispell-word-completion nil)
-
-(setopt treesit-font-lock-level 2)
+(setopt text-mode-ispell-word-completion nil
+        treesit-font-lock-level 2)
 
 (add-hook 'text-mode-hook (lambda ()
                             (turn-on-auto-fill)
@@ -231,14 +227,16 @@ When on a window system, also shrink the frame by the size of the deleted window
                   "Joins the next line to this, regardless of where the point is in the line."
                   (interactive) (join-line -1)))
 
-(bind-keys ("C-z"        . undo)
-           ("M->"        . pop-tag-mark)  ;; M-> is S-M-. which undos M-.
-           ("M-<return>" . fill-paragraph)
-           ("C-c C-k"    . kill-region)
-           ("C-w"        . backward-kill-word)
-           ("C-."        . completion-at-point)
-           ("<f1>"       . eglot)
-           ("<f2>"       . revert-buffer-quick))
+(bind-keys
+ ("<f1>"       . eglot)
+ ("<f2>"       . revert-buffer-quick)
+ ("C-."        . completion-at-point)
+ ("C-c C-k"    . kill-region)
+ ("C-w"        . backward-kill-word)
+ ("C-z"        . undo)
+ ("M-<return>" . fill-paragraph)
+ ;; M-> is S-M-. which undos M-.
+ ("M->"        . pop-tag-mark))
 
 ;; Unset mouse wheel changing font size: easy to accidently trigger.
 (keymap-global-unset "C-<wheel-up>")
@@ -262,7 +260,7 @@ When on a window system, also shrink the frame by the size of the deleted window
   (keymap-global-unset  "s-q")
   (bind-key "s-<return>" #'toggle-frame-maximized)
   (bind-key "s-w"        #'kill-ring-save)
-;; Emulate a 3-button mouse (<mouse-2> is middle click, <mouse-3> right click)
+  ;; Emulate a 3-button mouse (<mouse-2> is middle click, <mouse-3> right click)
   (keymap-set key-translation-map "s-<mouse-3>" "<mouse-2>"))
 
 
@@ -359,7 +357,7 @@ When on a window system, also shrink the frame by the size of the deleted window
 (advice-add 'mood-line-segment-checker--format-status :filter-return #'my/add-flymake-menu)
 
 (use-package mood-line-scroll-indicator
-  :load-path "~/src/emacs-lisp/mood-line-scroll-indicator/"
+  :load-path (lambda () (expand-file-name "mood-line-scroll-indicator" elisp-src-dir))
   :after mood-line
   :config (mood-line-scroll-indicator-mode))
 
@@ -410,7 +408,7 @@ When on a window system, also shrink the frame by the size of the deleted window
   :bind ("<f5>" . deadgrep))
 
 (use-package dired-sidebar
-  :load-path "~/src/emacs-lisp/dired-sidebar/"
+  :load-path (lambda () (expand-file-name "dired-sidebar" elisp-src-dir))
   :custom
   (dired-sidebar-theme 'ascii)
   (dired-sidebar-adjust-frame-width t)
