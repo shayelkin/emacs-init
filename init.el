@@ -387,7 +387,7 @@ When on a window system, also shrink the frame by the size of the deleted window
   :config (which-key-mode))
 
 (use-package auto-dim-other-buffers
-  :config (auto-dim-other-buffers-mode))
+  :hook (after-init . auto-dim-other-buffers-mode))
 
 (use-package windsize
   :config (windsize-default-keybindings))
@@ -419,8 +419,14 @@ When on a window system, also shrink the frame by the size of the deleted window
 (use-package makefile-executor
   :hook (makefile-mode . makefile-executor-mode))
 
+(use-package fish-mode
+  :mode
+  "\\.fish\\'"
+  "/fish_funced\\..*\\'")
+
 ;; `markdown-ts-mode exists', but markdown-mode has better ergonomics.
 (use-package markdown-mode
+  :mode "\\.md\\'"
   :after face-remap ;; built-in package
   :custom
   (markdown-header-scaling t)
@@ -444,11 +450,15 @@ When on a window system, also shrink the frame by the size of the deleted window
 
 (use-package swift-ts-mode
   :mode "\\.swift\\'")
+;; To build tree-sitter-swift:
+;; 1. https://github.com/alex-pinkus/tree-sitter-swift/blob/main/README.md#where-is-your-parserc
+;; 2. `cc -fPIC -c -I. -shared parser.c scanner.c -o ~/.config/emacs/tree-sitter/tree-sitter-swift.dylib`
 
 (use-package uv-mode
   :hook ((python-ts-mode python-mode) . uv-mode-auto-activate-hook))
 
 (use-package go-ts-mode
+  :mode "\\.go\\'"
   :hook ((go-ts-mode . (lambda ()
                          (setq-local indent-tabs-mode nil)))))
 
@@ -459,11 +469,41 @@ When on a window system, also shrink the frame by the size of the deleted window
 (use-package terraform-mode
   :mode "\\.t\\(f\\(vars\\)?\\|ofu\\)\\'")
 
-(use-package fish-mode)
+
+(use-package awk-ts-mode
+  :mode "\\.[mg]?awk\\'")
+
+(use-package perl-ts-mode
+  :mode "\\.pl\\'")
+
+(use-package scala-ts-mode
+  :mode
+  "\\.scala\\'"
+  "\\.sc\\'"
+  "\\.sbt\\'")
 
 ;; Configure treesit to be used with all supported langs:
-(use-package treesit-auto
-  :config (treesit-auto-add-to-auto-mode-alist nil))
+;; (use-package treesit-auto
+;;   :config (treesit-auto-add-to-auto-mode-alist nil))
+
+;; `treesit-auto' is slow to load. Just define major-mode-remap-alist for the
+;; built-in modes instead:
+(setq major-mode-remap-alist '((conf-toml-mode . toml-ts-mode)
+                               (ruby-mode . ruby-ts-mode)
+                               (python-mode . python-ts-mode)
+                               (js-json-mode . json-ts-mode)
+                               (javascript-mode . js-ts-mode)
+                               (js-mode . js-ts-mode)
+                               (java-mode . java-ts-mode)
+                               (sgml-mode . html-ts-mode)
+                               (mhtml-mode . html-ts-mode)
+                               (css-mode . css-ts-mode)
+                               (c++-mode . c++-ts-mode)
+                               (csharp-mode . csharp-ts-mode)
+                               (c-mode . c-ts-mode)
+                               (sh-mode . bash-ts-mode)
+                               (awk-mode . awk-ts-mode)
+                               (perl-mode . perl-ts-mode)))
 
 (use-package dash-at-point
   :ensure-system-package "/Applications/Dash.app"
