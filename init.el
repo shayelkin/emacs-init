@@ -469,9 +469,15 @@ When on a window system, also shrink the frame by the size of the deleted window
   :ensure-system-package "/Applications/Dash.app"
   :bind ("C-?" . dash-at-point))
 
-(use-package server ; built in
-  :config (server-start))
+(use-package agent-shell
+  :bind ("<f6>" . agent-shell)
+  ;; Can't use `:custom' as it doesn't evaluate its arguments
+  :config
+  (setq agent-shell-preferred-agent-config (agent-shell-anthropic-make-claude-code-config)
+        agent-shell-anthropic-claude-environment (agent-shell-make-environment-variables :inherit-env t)))
 
+(use-package server                     ; built in
+  :config (server-start))
 
 ;; --- custom-file:
 
