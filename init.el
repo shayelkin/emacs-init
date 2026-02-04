@@ -37,9 +37,9 @@
 
 (eval-when-compile
   (require 'use-package)
-  (require 'use-package-ensure)
-  (setq use-package-compute-statistics t))
+  (require 'use-package-ensure))
 
+(setq use-package-compute-statistics t)
 (setq use-package-always-ensure t)
 
 
@@ -264,6 +264,9 @@ When on a window system, also shrink the frame by the size of the deleted window
   (keymap-set key-translation-map "s-<mouse-3>" "<mouse-2>"))
 
 
+;; Mode line customization moved to its own file:
+(load (expand-file-name "my-mode-line" user-emacs-directory))
+
 ;; --- Per package settings:
 
 (use-package paredit
@@ -321,45 +324,6 @@ When on a window system, also shrink the frame by the size of the deleted window
                    (cdr args))))))
 (advice-add 'flymake--handle-report :around #'my/flymake-filter-by-pattern)
 
-(defun my/add-flymake-menu (str)
-  (when str
-    (propertize str 'keymap (let ((map (make-sparse-keymap)))
-                              (define-key map [mode-line down-mouse-1] 'flymake-show-buffer-diagnostics)
-                              (define-key map [mode-line down-mouse-3] flymake-menu)
-                              map))))
-
-(use-package mood-line
-  :custom-face (mood-line-buffer-status-modified ((t (:inherit error :weight bold))))
-  :custom (mood-line-format
-           (mood-line-defformat
-            :left
-            ((or (mood-line-segment-buffer-status) (mood-line-segment-client) " ")
-             ;; color the whole buffer name if modified
-             ((format-mode-line "%b" (if (buffer-modified-p)
-                                         'mood-line-buffer-status-modified
-                                       'mood-line-buffer-name)) . " ")
-             (mood-line-segment-cursor-position))
-            :right
-            (((when indent-tabs-mode #("TAB" 0 3 (face mood-line-status-warning))) . " ")
-             ((let (enc (mood-line-segment-encoding))
-                (unless (equal enc "UTF-8")
-                  enc)) . " ")
-             ((mood-line-segment-vc)          . "  ")
-             ((mood-line-segment-major-mode)  . "  ")
-             ((mood-line-segment-misc-info)   . "  ")
-             (mood-line-segment-checker)
-             " "
-             (mood-line-segment-process))))
-  :config (mood-line-mode))
-
-;; Add the flymake menu to `mood-line-segment-checker'. Done as advice and not as a
-;; call in `mood-line-format' to utilize the caching in mood-line.
-(advice-add 'mood-line-segment-checker--format-status :filter-return #'my/add-flymake-menu)
-
-(use-package mood-line-scroll-indicator
-  :load-path (lambda () (expand-file-name "mood-line-scroll-indicator" elisp-src-dir))
-  :after mood-line
-  :config (mood-line-scroll-indicator-mode))
 
 (use-package yasnippet
   :defer t)
@@ -387,7 +351,12 @@ When on a window system, also shrink the frame by the size of the deleted window
   :config (which-key-mode))
 
 (use-package auto-dim-other-buffers
-  :hook (after-init . auto-dim-other-buffers-mode))
+  ;; There's massive speedup from starting this in `after-init-hook', but doing it then
+  ;; would override a face if set by a theme loaded earlier. Explicitly save and restore it.
+  :hook (after-init . (lambda ()
+                        (let ((bg (face-attribute 'auto-dim-other-buffers :background)))
+                          (auto-dim-other-buffers-mode)
+                          (set-face-attribute 'auto-dim-other-buffers nil :background bg)))))
 
 (use-package windsize
   :config (windsize-default-keybindings))
@@ -469,7 +438,6 @@ When on a window system, also shrink the frame by the size of the deleted window
 (use-package terraform-mode
   :mode "\\.t\\(f\\(vars\\)?\\|ofu\\)\\'")
 
-
 (use-package awk-ts-mode
   :mode "\\.[mg]?awk\\'")
 
@@ -516,7 +484,7 @@ When on a window system, also shrink the frame by the size of the deleted window
   (setq agent-shell-preferred-agent-config (agent-shell-anthropic-make-claude-code-config)
         agent-shell-anthropic-claude-environment (agent-shell-make-environment-variables :inherit-env t)))
 
-(use-package server                     ; built in
+(use-package server   ;; built in
   :config (server-start))
 
 ;; --- custom-file:
