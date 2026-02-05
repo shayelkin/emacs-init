@@ -177,6 +177,10 @@ When on a window system, also shrink the frame by the size of the deleted window
 (dolist (frame (frame-list))
   (my/hide-menu-bar-on-text-frames frame))
 
+(add-hook 'after-make-frame-functions (lambda (&optional frame)
+                                        (unless (or xterm-mouse-mode (display-graphic-p frame))
+                                          (xterm-mouse-mode))))
+
 ;; On macOS `display-mm-width' lies, but `frame-monitor-attribute' has the correct value.
 ;; We can only maximize an already created frame, so can't use `inital-frame-alist'.
 (when-let* ((mm-width (car (alist-get 'mm-size (frame-monitor-attributes))))
@@ -388,14 +392,19 @@ When on a window system, also shrink the frame by the size of the deleted window
   :ensure-system-package (rg . ripgrep)
   :bind ("<f3>" . deadgrep))
 
-(use-package dired-sidebar
-  :load-path (lambda () (expand-file-name "dired-sidebar" elisp-src-dir))
-  :custom
-  (dired-sidebar-theme 'ascii)
-  (dired-sidebar-adjust-frame-width t)
-  :commands (dired-sidebar-toggle-sidebar)
-  :bind (("C-x C-n" . dired-sidebar-toggle-sidebar)
-         ("<f10>"   . dired-sidebar-toggle-sidebar)))
+(use-package sr-speedbar
+  :custom   (sr-speedbar-use-frame-root-window t)
+  :commands (sr-speed-bar-toggle)
+  :bind     ("<f10>" . sr-speedbar-toggle))
+
+;; (use-package dired-sidebar
+;;   :load-path (lambda () (expand-file-name "dired-sidebar" elisp-src-dir))
+;;   :custom
+;;   (dired-sidebar-theme 'ascii)
+;;   (dired-sidebar-adjust-frame-width t)
+;;   :commands (dired-sidebar-toggle-sidebar)
+;;   :bind (("C-x C-n" . dired-sidebar-toggle-sidebar)
+;;          ("<f10>"   . dired-sidebar-toggle-sidebar)))
 
 (use-package makefile-executor
   :hook (makefile-mode . makefile-executor-mode))
