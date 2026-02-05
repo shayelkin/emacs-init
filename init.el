@@ -410,6 +410,7 @@ When on a window system, also shrink the frame by the size of the deleted window
   :hook (makefile-mode . makefile-executor-mode))
 
 (use-package fish-mode
+  :ensure nil
   :mode
   "\\.fish\\'"
   "/fish_funced\\..*\\'")
@@ -439,6 +440,7 @@ When on a window system, also shrink the frame by the size of the deleted window
 ;;                                                 "tree-sitter-markdown-inline/src")))
 
 (use-package swift-ts-mode
+  :ensure nil
   :mode "\\.swift\\'")
 ;; To build tree-sitter-swift:
 ;; 1. https://github.com/alex-pinkus/tree-sitter-swift/blob/main/README.md#where-is-your-parserc
@@ -466,6 +468,7 @@ When on a window system, also shrink the frame by the size of the deleted window
   :mode "\\.pl\\'")
 
 (use-package scala-ts-mode
+  :ensure nil
   :mode
   "\\.scala\\'"
   "\\.sc\\'"
