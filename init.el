@@ -292,10 +292,29 @@ When on a window system, also shrink the frame by the size of the deleted window
   ((magit-pre-refresh  . diff-hl-magit-pre-refresh)
    (magit-post-refresh . diff-hl-magit-post-refresh)))
 
-(use-package flymake                    ;; built-in
+(defvar flymake-ignore-patterns nil
+  "Buffer-local list of regexes for flymake diagnostics text to ignore.")
+(make-variable-buffer-local 'flymake-ignore-patterns)
+
+(defun my/flymake-filter-by-pattern (orig-fn &rest args)
+  "Advice around `flymake--publish-diagnostics'"
+  (if (null flymake-ignore-patterns)
+      (apply orig-fn args)
+    (let ((diags (car args)))
+      (apply orig-fn
+             (cons (cl-remove-if
+                    (lambda (d)
+                      (let ((text (flymake-diagnostic-text d)))
+                        (cl-some (lambda (re) (string-match-p re text)) flymake-ignore-patterns)))
+                    diags)
+                   (cdr args))))))
+
+(use-package flymake ;; built-in
   :custom
   (flymake-fringe-indicator-position 'right-fringe)
   (flymake-wrap-around t)
+  :config
+  (advice-add 'flymake--publish-diagnostics :around  #'my/flymake-filter-by-pattern)
   :bind
   ("<f7>" . flymake-show-buffer-diagnostics)
   (:map flymake-mode-map
@@ -304,26 +323,6 @@ When on a window system, also shrink the frame by the size of the deleted window
   ;; Usually flymake-mode would be started by Eglot, but `emacs-lisp-mode'
   ;; doesn't use LSP/Eglot.
   :hook emacs-lisp-mode)
-
-(defvar flymake-ignore-patterns nil
-  "Buffer-local list of regexp matches for flymake diagnostics to ignore.")
-(make-variable-buffer-local 'flymake-ignore-patterns)
-
-(defun my/flymake-filter-by-pattern (orig-fn &rest args)
-  "Advice around `flymake--handle-report'."
-  (if (null flymake-ignore-patterns)
-      (apply orig-fn args)
-    (let ((diags (car args)))
-      (apply orig-fn
-             (cons (cl-remove-if
-                    (lambda (d)
-                      (cl-some (lambda (pat)
-                                 (string-match-p pat (flymake-diagnostic-text d)))
-                               flymake-ignore-patterns))
-                    diags)
-                   (cdr args))))))
-(advice-add 'flymake--handle-report :around #'my/flymake-filter-by-pattern)
-
 
 (use-package yasnippet
   :defer t)
