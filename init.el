@@ -232,7 +232,7 @@ When on a window system, also shrink the frame by the size of the deleted window
                   (interactive) (join-line -1)))
 
 (bind-keys
- ("<f1>"       . eglot)
+ ("<f1>"       . scratch-buffer)
  ("<f2>"       . revert-buffer-quick)
  ("C-."        . completion-at-point)
  ("C-c C-k"    . kill-region)
@@ -386,7 +386,7 @@ When on a window system, also shrink the frame by the size of the deleted window
 
 (use-package deadgrep
   :ensure-system-package (rg . ripgrep)
-  :bind ("<f5>" . deadgrep))
+  :bind ("<f3>" . deadgrep))
 
 (use-package dired-sidebar
   :load-path (lambda () (expand-file-name "dired-sidebar" elisp-src-dir))

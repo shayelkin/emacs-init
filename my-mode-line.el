@@ -15,10 +15,12 @@
 
 (defun my/add-flymake-menu (str)
   (when str
-    (propertize str 'keymap (let ((map (make-sparse-keymap)))
-                              (define-key map [mode-line down-mouse-1] 'flymake-show-buffer-diagnostics)
-                              (define-key map [mode-line down-mouse-3] flymake-menu)
-                              map))))
+    (propertize str
+                'help-echo "mouse-1: List all problems\nmouse-3: Flymake menu"
+                'local-map (let ((map (make-sparse-keymap)))
+                             (define-key map [mode-line down-mouse-1] 'flymake-show-buffer-diagnostics)
+                             (define-key map [mode-line down-mouse-3] flymake-menu)
+                             map))))
 
 (defun my/mood-line-segment-checker-format (status error warning note)
   "Format STATUS into a segment string with ERROR, WARNING, and NOTE counts."
@@ -42,6 +44,13 @@
                   error warning note)
         (format #("%s" 0 2 (face mood-line-status-neutral))
                 (mood-line--get-glyph :checker-good)))))))
+
+(defun my/mood-line-segment-vc-propertize (&rest _)
+  "Advice after `mood-line-segment-vc--update'."
+  (when-let* ((vc-str mood-line-segment-vc--text))
+    (setq mood-line-segment-vc--text (propertize vc-str
+                                                 'help-echo "mouse-1: Version control menu"
+                                                 'local-map vc-mode-line-map))))
 
 (defun my/mood-line-segment-encoding ()
   "Return the name of the coding system of the current buffer."
@@ -84,36 +93,41 @@
 
 (use-package mood-line
   :after nyan-mode
-  :custom-face (mood-line-buffer-status-modified ((t (:inherit error :weight bold))))
+  :custom-face
+  (mood-line-buffer-status-modified ((t (:inherit error :weight bold))))
+  (mood-line-major-mode ((t (:weight normal))))
   :custom
   (mood-line-glyph-alist '((:checker-good . ?✔)
                            (:buffer-modified . ?・)))
   (mood-line-format
-   (mood-line-defformat
-    :left
-    ((or (mood-line-segment-buffer-status) (mood-line-segment-client) " ")
-     (format-mode-line " %b "
-                       ;; Color the whole buffer name if modified.
-                       (if (buffer-modified-p)
-                           'mood-line-buffer-status-modified
-                         'mood-line-buffer-name))
-     (if (display-graphic-p)
-         ;; Use fixed-pitch face to keep the scroll bar left position fixed.
-         (format-mode-line "%5c" 'fixed-pitch)
-       (format-mode-line "%l:%c")))
-    :right
-    (" "
-     ((when indent-tabs-mode #("TAB" 0 3 (face mood-line-status-warning))) . " ")
-     ((my/mood-line-segment-encoding) . " ")
-     ((mood-line-segment-vc)          . " ")
-     ((mood-line-segment-major-mode)  . " ")
-     ((mood-line-segment-misc-info)   . " ")
-     ((mood-line-segment-process)     . " ")
-     ((mood-line-segment-checker)     . " "))))
+        (mood-line-defformat
+         :left
+         (((mood-line-segment-vc) . " ")
+          (or (mood-line-segment-buffer-status) (mood-line-segment-client) " ")
+          (format-mode-line "%b "
+                            ;; Color the whole buffer name if modified.
+                            (if (buffer-modified-p)
+                                'mood-line-buffer-status-modified
+                              'mood-line-buffer-name))
+          (propertize (format-mode-line "%l:%c") 'display '(min-width (12.0))))
+         :right
+         (" "
+          ((when indent-tabs-mode #("TAB" 0 3 (face mood-line-status-warning))) . " ")
+          ((my/mood-line-segment-encoding) . " ")
+
+          ((propertize (format-mode-line mode-name)
+                       'help-echo "mouse-1: Display major mode menu\n\
+mouse-2: Show help for major mode\n\
+mouse-3: Toggle minor modes"
+                       'local-map mode-line-major-mode-keymap) . " ")
+          ((mood-line-segment-misc-info)   . " ")
+          ((mood-line-segment-process)     . " ")
+          ((mood-line-segment-checker)     . " "))))
   :config
   (advice-add 'mood-line--process-format :around #'my/mood-line-process-format)
   ;; Done as advice and not as a call in `mood-line-format' to utilize the caching in mood-line.
   (advice-add 'mood-line-segment-checker--format-status :override #'my/mood-line-segment-checker-format)
+  (advice-add 'mood-line-segment-vc--update :after #'my/mood-line-segment-vc-propertize)
   (mood-line-mode))
 
 ;; (use-package mood-line-scroll-indicator
