@@ -273,6 +273,15 @@ When on a window system, also shrink the frame by the size of the deleted window
 
 ;; --- Per package settings:
 
+(use-package smtpmail                  ;; built-in
+  :autoload smtpmail-send-it
+  :custom
+  (send-mail-function    'smtpmail-send-it)
+  (smtpmail-smtp-server  "smtp.gmail.com")
+  (smtpmail-smtp-service 465)
+  (smtpmail-stream-type  'ssl)
+  (smtpmail-servers-requiring-authorization "\\.gmail\\.com"))
+
 (use-package paredit
   :hook ((lisp-mode emacs-lisp-mode) . enable-paredit-mode))
 
