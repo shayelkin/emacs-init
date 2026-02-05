@@ -19,7 +19,7 @@
 
 (defvar elisp-src-dir
   (expand-file-name "~/src/emacs-lisp")
-  "Directory containing sources for Emacs packages")
+  "Directory containing local sources for Emacs packages.")
 
 ;; --- Package managment:
 
@@ -177,9 +177,13 @@ When on a window system, also shrink the frame by the size of the deleted window
 (dolist (frame (frame-list))
   (my/hide-menu-bar-on-text-frames frame))
 
-;; Maximize and horizontally split the initial frame. At least on macOS,
-;; this requires the frame to be created, so can't use `initial-frame-alist'.
-(set-frame-parameter nil 'fullscreen 'maximized)
+;; On macOS `display-mm-width' lies, but `frame-monitor-attribute' has the correct value.
+;; We can only maximize an already created frame, so can't use `inital-frame-alist'.
+(when-let* ((mm-width (car (alist-get 'mm-size (frame-monitor-attributes))))
+            ((< mm-width 450)))
+  (set-frame-parameter nil 'fullscreen 'maximized))
+
+;; Split the inital frame
 (when (< split-width-threshold (frame-parameter nil 'width))
   (split-window-horizontally))
 

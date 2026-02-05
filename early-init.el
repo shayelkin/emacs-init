@@ -19,8 +19,12 @@
 ;; Set frame parameters before it is displayed, to avoid a redraw (hiding the
 ;; toolbar after frame creation takes 0.2s).
 (modify-all-frames-parameters
- '((tool-bar-lines . 0)
+ '((height . 52)
+   (tool-bar-lines . 0)
    (vertical-scroll-bars . nil)))
+
+(add-to-list 'initial-frame-alist
+             `(width . ,(1+ split-width-threshold)))
 
 (provide 'early-init)
 ;;; early-init.el ends here
