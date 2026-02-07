@@ -29,9 +29,9 @@
 (setq package-archives '(("gnu"          . "https://elpa.gnu.org/packages/")
 			 ("melpa-stable" . "https://stable.melpa.org/packages/")
                          ("melpa"        . "https://melpa.org/packages/"))
-      package-archive-priorities '(("melpa-stable" . 2) ;; Prefer stable versions.
+      package-archive-priorities '(("melpa-stable" . 0)
                                    ("gnu"          . 1)
-                                   ("melpa"        . 0)))
+                                   ("melpa"        . 2)))
 
 (require 'bind-key)
 
