@@ -2,138 +2,119 @@
 
 ;; SPDX-License-Identifier: MIT
 ;; Author: Shay Elkin <shay@elkin.io>
-;; Package-Requires: ((use-pacakge "2.4.6") (mood-line "3.1.1") (nyan-mode "1.1.3"))
+;; Package-Requires: ((emacs "30.1") (nyan-mode "1.1.3"))
 
 ;; This file is not part of GNU Emacs.
 
 ;;; Commentary:
 
-;; My most extenstive customization to Emacs: an even more compact mood-line, with
-;; nyan-cat scroll bar.
+;; My most extenstive customization to Emacs: a more sparse mode-line, with nyan-mode scroll bar.
 
 ;;; Code:
-
-(defun my/add-flymake-menu (str)
-  (when str
-    (propertize str
-                'help-echo "mouse-1: List all problems\nmouse-3: Flymake menu"
-                'local-map (let ((map (make-sparse-keymap)))
-                             (define-key map [mode-line down-mouse-1] 'flymake-show-buffer-diagnostics)
-                             (define-key map [mode-line down-mouse-3] flymake-menu)
-                             map))))
-
-(defun my/mood-line-segment-checker-format (status error warning note)
-  "Format STATUS into a segment string with ERROR, WARNING, and NOTE counts."
-  (my/add-flymake-menu
-   (pcase status
-     ('running
-      (format #("%s" 0 2 (face mood-line-status-neutral))
-              (mood-line--get-glyph :checker-checking)))
-     ('errored
-      (format #("%s" 0 2 (face mood-line-status-error))
-              (mood-line--get-glyph :checker-errored)))
-     ('interrupted
-      (format #("%s" 0 2 (face mood-line-status-neutral))
-              (mood-line--get-glyph :checker-interrupted)))
-     ('finished
-      (if (> (+ error warning note) 0)
-          (format #("%s %s %s"
-                    0 2 (face mood-line-status-error)
-                    3 5 (face mood-line-status-warning)
-                    6 8 (face mood-line-status-info))
-                  error warning note)
-        (format #("%s" 0 2 (face mood-line-status-neutral))
-                (mood-line--get-glyph :checker-good)))))))
-
-(defun my/mood-line-segment-vc-propertize (&rest _)
-  "Advice after `mood-line-segment-vc--update'."
-  (when-let* ((vc-str mood-line-segment-vc--text))
-    (setq mood-line-segment-vc--text (propertize vc-str
-                                                 'help-echo "mouse-1: Version control menu"
-                                                 'local-map vc-mode-line-map))))
-
-(defun my/mood-line-segment-encoding ()
-  "Return the name of the coding system of the current buffer."
-  (when buffer-file-coding-system
-    (let ((coding-system (coding-system-plist buffer-file-coding-system)))
-      (unless (memq (plist-get coding-system :category)
-                    '(coding-category-undecided coding-category-utf-8))
-        (propertize (upcase (symbol-name (plist-get coding-system :name)))
-                    'face 'mood-line-status-warning)))))
-
-(defun my/modeline-width (str)
-  "Return pixel width of STR when rendered with the mode-line face."
-  (let ((copy (copy-sequence str)))
-    ;; Append mode-line as base face to preserving existing face properties.
-    (add-face-text-property 0 (length copy) 'mode-line t copy)
-    (string-pixel-width copy)))
-
-(defconst nyan-bar-unit-px 8)
-
-(defun my/mood-line-process-format (oldfun format)
-  "Advice for `mood-line--process-format'."
-  (if (not (display-graphic-p))
-      (funcall oldfun format)
-    (let* ((left-str (mood-line--process-segments (car format)))
-           (right-str (mood-line--process-segments (cadr format)))
-           (left-px (my/modeline-width left-str))
-           (right-px (my/modeline-width right-str))
-           (empty-px (- (window-pixel-width) left-px right-px)))
-      (setq-local nyan-bar-length (1- (/ empty-px nyan-bar-unit-px)))
-      (list left-str
-            (propertize " " 'display `((space :width
-                                              (,(- empty-px
-                                                   (* nyan-bar-unit-px
-                                                      nyan-bar-length))))))
-            (nyan-create)
-            right-str))))
 
 (use-package nyan-mode
   :custom (nyan-minimum-window-width 0))
 
-(use-package mood-line
-  :after nyan-mode
-  :custom-face
-  (mood-line-buffer-status-modified ((t (:inherit error :weight bold))))
-  (mood-line-major-mode ((t (:weight normal))))
-  :custom
-  (mood-line-glyph-alist '((:checker-good . ?✔)
-                           (:buffer-modified . ?・)))
-  (mood-line-format
-        (mood-line-defformat
-         :left
-         (((mood-line-segment-vc) . " ")
-          (or (mood-line-segment-buffer-status) (mood-line-segment-client) " ")
-          (format-mode-line "%b "
-                            ;; Color the whole buffer name if modified.
-                            (if (buffer-modified-p)
-                                'mood-line-buffer-status-modified
-                              'mood-line-buffer-name))
-          (propertize (format-mode-line "%l:%c") 'display '(min-width (12.0))))
-         :right
-         (" "
-          ((when indent-tabs-mode #("TAB" 0 3 (face mood-line-status-warning))) . " ")
-          ((my/mood-line-segment-encoding) . " ")
+(setq mode-line-right-align-edge 'right-fringe
+      mode-line-percent-position nil
+      vc-display-status 'no-backend
+      ;; Remove the square brackets around the counters.
+      flymake-mode-line-counter-format '(""
+                                         flymake-mode-line-error-counter
+                                         flymake-mode-line-warning-counter
+                                         flymake-mode-line-note-counter " "))
 
-          ((propertize (format-mode-line mode-name)
-                       'help-echo "mouse-1: Display major mode menu\n\
+(defvar my/flymake-empty-counters-propertized-str
+  `(:propertize ("✔ ")
+                help-echo "mouse-1: Check now"
+                local-map ,(let ((map (make-sparse-keymap)))
+                             (define-key map [mode-line down-mouse-1] 'flymake-start)
+                             map)))
+
+(defun my/flymake-mode-line ()
+  "Mode line construct for Flymake information."
+  (when (bound-and-true-p flymake-mode)
+    (let* ((exception (format-mode-line flymake-mode-line-exception))
+           (counters (format-mode-line flymake-mode-line-counters))
+           ;; Extract the counters and sum them
+           (counters-sum (apply #'+ (mapcar #'string-to-number (split-string counters "[^0-9]+" t)))))
+      (list
+       exception
+       (cond ((> counters-sum 0) counters)
+             ((length= exception 0) my/flymake-empty-counters-propertized-str))))))
+
+;; The default value for mode-line-buffer-identification is ("%12b"), I want just " %b ".
+
+(defvar my/propertized-buffer-identification
+  (car (propertized-buffer-identification " %b ")))
+
+(defface mode-line-buffer-id-modified
+  '((t (:inherit (mode-line-buffer-id diff-changed))))
+  "Face used for buffer identification in the mode line, when buffer is modified.")
+
+(defvar my/propertized-buffer-identification-modified
+  (let ((copy (copy-sequence my/propertized-buffer-identification)))
+    (add-face-text-property 1 (1- (length copy)) 'mode-line-buffer-id-modified t copy)
+    copy))
+
+(defun my/mode-line-buffer-identification ()
+  "Return `mode-line-buffer-identification' propertized in `warning' when buffer is modified."
+  (cond
+   ((local-variable-p 'mode-line-buffer-identification) mode-line-buffer-identification)
+   ((buffer-modified-p) my/propertized-buffer-identification-modified)
+   (t my/propertized-buffer-identification)))
+
+(defun string-pixel-width-face (str face)
+  "Return pixel width of STR when rendered with in FACE."
+  (let ((copy (copy-sequence str)))
+    ;; Append as base face to preserving existing face properties in `str'
+    (add-face-text-property 0 (length copy) face t copy)
+    (string-pixel-width copy)))
+
+(defconst my/nyan-char-width-px 8)
+
+(defvar-local nyan-cache nil)
+
+(defun my/mode-line-middle ()
+  (let* ((left-str (format-mode-line my/mode-line-format-left))
+         (left-px  (string-pixel-width-face left-str 'mode-line))
+         (right-str (format-mode-line my/mode-line-format-right))
+         (right-px  (string-pixel-width-face right-str 'mode-line))
+         (space-px (- (window-pixel-width) left-px right-px))
+         (nyan-bar-length (1- (/ space-px my/nyan-char-width-px)))
+         (draw-nyan (and (display-graphic-p) (> nyan-bar-length 3))))
+    (list ""
+          (if (not draw-nyan) '(-3 "%p")
+            (let ((cache-idx (cons nyan-bar-length (point))))
+              (when (not (equal cache-idx (car nyan-cache)))
+                (setq nyan-cache (cons cache-idx (nyan-create)))))
+            (cdr nyan-cache))
+          (propertize " " 'display `(space :align-to (- right-fringe (,right-px)))))))
+
+(defvar my/mode-line-format-left
+  '(("" mode-line-mule-info mode-line-client mode-line-modified
+     mode-line-remote mode-line-window-dedicated)
+    (:eval (my/mode-line-buffer-identification))
+    (vc-mode vc-mode) "\t"
+    mode-line-position))
+
+(defvar my/mode-line-format-right
+  `((:eval (when indent-tabs-mode #("TAB " 0 3 (face warning))))
+    mode-line-misc-info
+    (:propertize ("" mode-name)
+                 help-echo "mouse-1: Display major mode menu\n\
 mouse-2: Show help for major mode\n\
 mouse-3: Toggle minor modes"
-                       'local-map mode-line-major-mode-keymap) . " ")
-          ((mood-line-segment-misc-info)   . " ")
-          ((mood-line-segment-process)     . " ")
-          ((mood-line-segment-checker)     . " "))))
-  :config
-  (advice-add 'mood-line--process-format :around #'my/mood-line-process-format)
-  ;; Done as advice and not as a call in `mood-line-format' to utilize the caching in mood-line.
-  (advice-add 'mood-line-segment-checker--format-status :override #'my/mood-line-segment-checker-format)
-  (advice-add 'mood-line-segment-vc--update :after #'my/mood-line-segment-vc-propertize)
-  (mood-line-mode))
+                 mouse-face mode-line-highlight
+                 local-map ,mode-line-major-mode-keymap)
+    " "
+    (:eval (my/flymake-mode-line))
+    mode-line-process))
 
-;; (use-package mood-line-scroll-indicator
-;;   :load-path (lambda () (expand-file-name "mood-line-scroll-indicator" elisp-src-dir))
-;;   :after mood-line
-;;   :config (mood-line-scroll-indicator-mode))
+(setq-default mode-line-format
+              `(,@my/mode-line-format-left
+                (:eval (my/mode-line-middle))
+                ,@my/mode-line-format-right))
 
 (provide 'my-mode-line)
 ;;; my-mode-line.el ends here

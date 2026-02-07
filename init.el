@@ -157,9 +157,6 @@ When on a window system, also shrink the frame by the size of the deleted window
 (set-charset-priority 'unicode)
 
 (when (display-multi-font-p)
-  (set-face-font 'default (font-spec :family "Comic Code"))
-  (set-face-font 'fixed-pitch (font-spec :family "Comic Code"))
-  (set-face-font 'variable-pitch (font-spec :family "Noto Sans" :height 1.08))
   (set-fontset-font t nil (font-spec :family "Noto Sans Symbols") nil :append)
   (set-fontset-font t nil (font-spec :family "Noto Sans Symbols 2") nil :append))
 
@@ -198,6 +195,7 @@ When on a window system, also shrink the frame by the size of the deleted window
                            (:eval (abbreviate-file-name (buffer-file-name)))
                            "%b"))
 (setq
+ fill-column 100
  blink-cursor-blinks 2
  create-lockfiles nil
  delete-by-moving-to-trash t
@@ -326,6 +324,16 @@ When on a window system, also shrink the frame by the size of the deleted window
                     diags)
                    (cdr args))))))
 
+(use-package which-func ;; built-in
+  :config
+  (setq which-func-unknown "")
+  ;; Drop the brackets
+  (when (equal (car which-func-format) "[")
+    (setq which-func-format (cadr which-func-format)))
+  :hook
+  ;; Package is called `which-func', but mode is `which-function-mode'
+  (java-ts-mode . which-function-mode))
+
 (use-package flymake ;; built-in
   :custom
   (flymake-fringe-indicator-position 'right-fringe)
@@ -382,7 +390,7 @@ When on a window system, also shrink the frame by the size of the deleted window
 
 (use-package exec-path-from-shell
   :if on-mac-window-system
-  :demand t
+  :custom (exec-path-from-shell-variables '("PATH"))
   :config (exec-path-from-shell-initialize))
 
 (use-package ultra-scroll
@@ -415,10 +423,9 @@ When on a window system, also shrink the frame by the size of the deleted window
   "\\.fish\\'"
   "/fish_funced\\..*\\'")
 
-;; `markdown-ts-mode exists', but markdown-mode has better ergonomics.
+;; `markdown-ts-mode' exists, but markdown-mode has better ergonomics.
 (use-package markdown-mode
   :mode "\\.md\\'"
-  :after face-remap ;; built-in package
   :custom
   (markdown-header-scaling t)
   (markdown-header-scaling-values '(1.5 1.3 1.2 1.1 1.1 1.1))
