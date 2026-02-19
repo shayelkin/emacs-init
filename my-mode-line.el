@@ -8,7 +8,8 @@
 
 ;;; Commentary:
 
-;; My most extenstive customization to Emacs: a more sparse mode-line, with nyan-mode scroll bar.
+;; My most extenstive customization to Emacs: a more sparse mode-line (inspired by mood-line),
+;; with nyan-mode scroll bar between the left and right parts.
 
 ;;; Code:
 
@@ -16,6 +17,7 @@
   :custom (nyan-minimum-window-width 0))
 
 (setq mode-line-right-align-edge 'right-fringe
+      ;; `my/mode-line-middle' puts a `%p' if needed.
       mode-line-percent-position nil
       vc-display-status 'no-backend
       ;; Remove the square brackets around the counters.
@@ -49,7 +51,7 @@
   (car (propertized-buffer-identification " %b ")))
 
 (defface mode-line-buffer-id-modified
-  '((t (:inherit (mode-line-buffer-id diff-changed))))
+  '((t (:inherit (mode-line-buffer-id warning))))
   "Face used for buffer identification in the mode line, when buffer is modified.")
 
 (defvar my/propertized-buffer-identification-modified
@@ -58,7 +60,7 @@
     copy))
 
 (defun my/mode-line-buffer-identification ()
-  "Return `mode-line-buffer-identification' propertized in `warning' when buffer is modified."
+  "Return `mode-line-buffer-identification' propertized in `mode-line-buffer-id-modified' when buffer is modified."
   (cond
    ((local-variable-p 'mode-line-buffer-identification) mode-line-buffer-identification)
    ((buffer-modified-p) my/propertized-buffer-identification-modified)
@@ -73,7 +75,8 @@
 
 (defconst my/nyan-char-width-px 8)
 
-(defvar-local nyan-cache nil)
+(defvar-local nyan-cache nil
+  "A cons cell with (nyan-bar-length (point)) as car, and a matching nyan bar as cdr.")
 
 (defun my/mode-line-middle ()
   (let* ((left-str (format-mode-line my/mode-line-format-left))
@@ -85,9 +88,12 @@
          (draw-nyan (and (display-graphic-p) (> nyan-bar-length 3))))
     (list ""
           (if (not draw-nyan) '(-3 "%p")
-            (let ((cache-idx (cons nyan-bar-length (point))))
-              (when (not (equal cache-idx (car nyan-cache)))
-                (setq nyan-cache (cons cache-idx (nyan-create)))))
+            (let ((cache-args (cons nyan-bar-length (point))))
+              (when (not (equal cache-args (car nyan-cache)))
+                ;; At a glance `nyan-create' looks far from optimal, but benchmarking
+                ;; different concatanation strategies and caching create-image doesn't
+                ;; show much difference.
+                (setq nyan-cache (cons cache-args (nyan-create)))))
             (cdr nyan-cache))
           (propertize " " 'display `(space :align-to (- right-fringe (,right-px)))))))
 

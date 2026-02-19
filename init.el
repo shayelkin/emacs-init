@@ -18,7 +18,7 @@
   "Non-nil when running on macOS graphical environment.")
 
 (defvar elisp-src-dir
-  (expand-file-name "~/src/emacs-lisp")
+  (expand-file-name "~/src/elisp")
   "Directory containing local sources for Emacs packages.")
 
 ;; --- Package managment:
@@ -216,13 +216,11 @@ When on a window system, also shrink the frame by the size of the deleted window
 (setopt text-mode-ispell-word-completion nil
         treesit-font-lock-level 2)
 
-(add-hook 'text-mode-hook (lambda ()
-                            (turn-on-auto-fill)
-                            (visual-line-mode)))
+(add-hook 'text-mode-hook #'turn-on-auto-fill)
+(add-hook 'text-mode-hook #'visual-line-mode)
 
-(add-hook 'prog-mode-hook (lambda ()
-                            (display-line-numbers-mode)
-                            (electric-pair-local-mode)))
+(add-hook 'prog-mode-hook #'display-line-numbers-mode)
+(add-hook 'prog-mode-hook #'electric-pair-local-mode)
 
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
@@ -283,6 +281,10 @@ When on a window system, also shrink the frame by the size of the deleted window
   (smtpmail-smtp-service 465)
   (smtpmail-stream-type  'ssl)
   (smtpmail-servers-requiring-authorization "\\.gmail\\.com"))
+
+(use-package flyspell
+  :hook ((text-mode . flyspell-mode)
+         (prog-mode . flyspell-prog-mode)))
 
 (use-package paredit
   :hook ((lisp-mode emacs-lisp-mode) . enable-paredit-mode))
